@@ -3,265 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>壹金金业 - 金价报价系统</title>
+    <title>壹金金业 - 实时报价系统</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Microsoft YaHei", sans-serif;
+        /* 基础重置与全局样式 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f5f7; color: #333; }
+        
+        /* 顶部导航栏 (采用暗金色调彰显黄金行业质感) */
+        .header { 
+            background: linear-gradient(135deg, #c5a059, #8c6a32); 
+            color: #fff; 
+            text-align: center; 
+            padding: 16px 0; 
+            font-size: 20px; 
+            font-weight: bold; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15); 
         }
-        body {
-            background-color: #f5f5f5;
-            padding: 10px;
-            font-size: 15px;
+
+        /* 时间与状态提示条 */
+        .status-bar { 
+            background-color: #fff; 
+            padding: 10px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 13px; 
+            border-bottom: 1px solid #ebebeb; 
         }
-        /* 标题样式，和参考网站一致 */
-        .header-title {
-            text-align: center;
-            color: #333;
-            font-weight: bold;
-            font-size: 18px;
-            padding: 10px 0;
+        .status-bar .market-status { color: #e53935; font-weight: bold; } /* 默认显示交易中 */
+        .status-bar .time { color: #666; }
+
+        /* 报价表格主体 */
+        .quote-container { background-color: #fff; margin-top: 10px; }
+        .quote-table { width: 100%; border-collapse: collapse; }
+        .quote-table th, .quote-table td { 
+            padding: 14px 10px; 
+            text-align: center; 
+            border-bottom: 1px solid #f0f0f0; 
         }
-        /* 更新时间样式 */
-        .update-time {
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 15px;
+        .quote-table th { background-color: #fafafa; color: #888; font-size: 13px; font-weight: 500; }
+        .quote-table td { font-size: 16px; font-weight: 600; font-family: monospace; }
+        
+        /* 品种名称样式 */
+        .product-name { color: #222; font-size: 15px; }
+        .product-desc { display: block; font-size: 11px; color: #999; font-weight: normal; margin-top: 2px;}
+        
+        /* 涨跌颜色 (国内习惯：红涨绿跌) */
+        .price-up { color: #e53935; }
+        .price-down { color: #43a047; }
+        .price-flat { color: #333; }
+
+        /* 价格变动时的闪烁动画特效 */
+        @keyframes flashRed { 0% { background-color: rgba(229, 57, 53, 0.2); } 100% { background-color: transparent; } }
+        @keyframes flashGreen { 0% { background-color: rgba(67, 160, 71, 0.2); } 100% { background-color: transparent; } }
+        .bg-flash-up { animation: flashRed 0.8s ease-out; }
+        .bg-flash-down { animation: flashGreen 0.8s ease-out; }
+
+        /* 底部公司信息 */
+        .footer { 
+            text-align: center; 
+            padding: 25px 15px; 
+            margin-top: 15px; 
+            background-color: #fff; 
+            font-size: 12px; 
+            color: #888; 
+            line-height: 1.8; 
+            border-top: 1px solid #ebebeb; 
         }
-        /* 表格容器 */
-        .table-container {
-            background-color: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-        /* 表格标题，黄色背景，和参考网站一致 */
-        .table-header {
-            background-color: #d4af37;
-            color: #fff;
-            padding: 10px;
-            text-align: center;
-            font-weight: bold;
-        }
-        /* 表格样式 */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        table td, table th {
-            padding: 10px;
-            text-align: center;
-            border-bottom: 1px solid #eee;
-        }
-        table tr:last-child td {
-            border-bottom: none;
-        }
-        /* 底部信息 */
-        .footer-info {
-            text-align: center;
-            color: #666;
-            font-size: 13px;
-            line-height: 1.6;
-            margin-top: 20px;
-        }
+        .company-name { font-size: 15px; font-weight: bold; color: #c5a059; margin-bottom: 8px; }
+        .address { display: flex; align-items: center; justify-content: center; gap: 5px; }
     </style>
 </head>
 <body>
-    <!-- 顶部标题 -->
-    <div class="header-title">壹金金业 旧料行情</div>
-    <!-- 动态更新时间 -->
-    <div class="update-time" id="update-time">旧料行情 正在加载...</div>
 
-    <!-- 旧料回购价表格，和参考网站结构完全一致 -->
-    <div class="table-container">
-        <div class="table-header">旧料回购价（元/克）</div>
-        <table>
-            <tr>
-                <td>Au旧料</td>
-                <td id="au-jiuliao">--</td>
-            </tr>
-            <tr>
-                <td>Au金条</td>
-                <td id="au-jintiao">--</td>
-            </tr>
-            <tr>
-                <td>Au916（22K）</td>
-                <td id="au-916">--</td>
-            </tr>
-            <tr>
-                <td>Au750（18K）</td>
-                <td id="au-750">--</td>
-            </tr>
-            <tr>
-                <td>Pt950（铂金）</td>
-                <td id="pt-950">--</td>
-            </tr>
-            <tr>
-                <td>Pd990（钯金）</td>
-                <td id="pd-990">--</td>
-            </tr>
-            <tr>
-                <td>Ag999（纯银）</td>
-                <td id="ag-999">--</td>
-            </tr>
-            <tr>
-                <td>Ag925（925银）</td>
-                <td id="ag-925">--</td>
-            </tr>
+    <header class="header">
+        壹金金业
+    </header>
+
+    <div class="status-bar">
+        <span class="market-status">● 盘中交易</span>
+        <span class="time" id="currentTime">更新中...</span>
+    </div>
+
+    <div class="quote-container">
+        <table class="quote-table">
+            <thead>
+                <tr>
+                    <th>交易品种</th>
+                    <th>国际大盘价</th>
+                    <th>实时回收价</th>
+                    <th>涨跌</th>
+                </tr>
+            </thead>
+            <tbody id="priceTableBody">
+                </tbody>
         </table>
     </div>
 
-    <!-- 国内行情/国际行情表格，和参考网站结构完全一致 -->
-    <div class="table-container">
-        <div class="table-header">国内行情/国际行情</div>
-        <table>
-            <tr>
-                <th>品类</th>
-                <th>回购价</th>
-                <th>销售价</th>
-                <th>高低价</th>
-            </tr>
-            <tr>
-                <td>Au9999</td>
-                <td id="au9999-hg">--</td>
-                <td id="au9999-xs">--</td>
-                <td id="au9999-range">--</td>
-            </tr>
-            <tr>
-                <td>Pt9995</td>
-                <td id="pt9995-hg">--</td>
-                <td id="pt9995-xs">--</td>
-                <td id="pt9995-range">--</td>
-            </tr>
-            <tr>
-                <td>Pd9995</td>
-                <td id="pd9995-hg">--</td>
-                <td id="pd9995-xs">--</td>
-                <td id="pd9995-range">--</td>
-            </tr>
-        </table>
-    </div>
+    <footer class="footer">
+        <div class="company-name">壹金金业</div>
+        <div>专业黄金回收 · 诚信经营 · 价格同步国际大盘</div>
+        <div class="address">
+            📍 贵州省贵阳市观山湖区长岭南路 33 号天一国际广场 12 栋 14 楼
+        </div>
+    </footer>
 
-    <!-- 底部信息，已用你的公司信息填好 -->
-    <div class="footer-info">
-        壹金金业（贵阳黄金旧料回收中心）<br>
-        公司地址：贵州省贵阳市观山湖区长岭南路33号天一国际广场12栋20楼<br>
-        联系电话：18083606758<br>
-        业务范围：珠宝店旧料回收 | 店铺黄金回收 | 贵金属回购
-    </div>
-
-    <!-- 实时更新脚本（核心功能） -->
     <script>
-        // 【可自由修改的配置项】直接改数字即可，不用动其他代码
-        const CONFIG = {
-            // 回购差价：旧料/金条比基础金价低多少（元/克）
-            auJiuLiaoSpread: 3,    // Au旧料差价
-            auJinTiaoSpread: 1,    // Au金条差价
-            // 销售差价：销售价比基础金价高多少（元/克）
-            auSaleSpread: 10,
-            ptSaleSpread: 10,
-            pdSaleSpread: 10,
-            // 高低价波动范围（可根据实际情况调整）
-            auRange: 10,
-            ptRange: 8,
-            pdRange: 8,
-            // 自动更新间隔：5分钟=300000毫秒（可改成60000=1分钟）
-            refreshInterval: 300000
-        };
+        // 1. 初始化品种与基础价格数据 (这里模拟初始数据)
+        // 实际开发中，这些数据应通过 AJAX 请求您的后端接口获取
+        const products = [
+            { id: 'au9999', name: '黄金 9999', desc: 'Au99.99', basePrice: 508.50, recycleDiff: -1.00 }, // 假设回收价低于大盘1元
+            { id: 'pt9999', name: '铂金 9999', desc: 'Pt99.99', basePrice: 215.30, recycleDiff: -2.00 },
+            { id: 'ag9999', name: '白银 9999', desc: 'Ag99.99', basePrice: 6.15, recycleDiff: -0.10 },
+            { id: 'pd9999', name: '钯金 9999', desc: 'Pd99.99', basePrice: 240.80, recycleDiff: -3.00 }
+        ];
 
-        // 核心函数：获取并更新金价
-        async function updateGoldPrice() {
-            try {
-                // 调用稳定的公开金价API，获取上海金交所实时数据
-                const response = await fetch('https://www.nbsim.top/api/gold');
-                const data = await response.json();
+        // 记录上一次的价格，用于判断涨跌颜色和触发动画
+        const lastPrices = {};
 
-                // 解析基础金价（单位：元/克）
-                const auBase = parseFloat(data.shgold); // 上海金交所Au9999价格
-                const ptBase = parseFloat(data.pt);      // 铂金价格
-                const pdBase = parseFloat(data.pd);      // 钯金价格
-                const agBase = parseFloat(data.ag);      // 白银价格
-
-                // 1. 计算旧料回购价
-                const auJiuLiao = (auBase - CONFIG.auJiuLiaoSpread).toFixed(2);
-                const auJinTiao = (auBase - CONFIG.auJinTiaoSpread).toFixed(2);
-                const au916 = (auBase * 0.916).toFixed(2); // 22K金：含金量91.6%
-                const au750 = (auBase * 0.75).toFixed(2);  // 18K金：含金量75%
-                const pt950 = (ptBase * 0.95).toFixed(2);  // 铂金950：含金量95%
-                const pd990 = pdBase.toFixed(2);           // 钯金990
-                const ag999 = agBase.toFixed(2);          // 纯银999
-                const ag925 = (agBase * 0.925).toFixed(2); // 925银：含金量92.5%
-
-                // 2. 计算国内行情价格
-                const au9999Hg = auBase.toFixed(2);
-                const au9999Xs = (auBase + CONFIG.auSaleSpread).toFixed(2);
-                const au9999Low = (auBase - CONFIG.auRange).toFixed(2);
-                const au9999High = (auBase + CONFIG.auRange).toFixed(2);
-                const au9999Range = `${au9999Low}-${au9999High}`;
-
-                const pt9995Hg = ptBase.toFixed(2);
-                const pt9995Xs = (ptBase + CONFIG.ptSaleSpread).toFixed(2);
-                const pt9995Low = (ptBase - CONFIG.ptRange).toFixed(2);
-                const pt9995High = (ptBase + CONFIG.ptRange).toFixed(2);
-                const pt9995Range = `${pt9995Low}-${pt9995High}`;
-
-                const pd9995Hg = pdBase.toFixed(2);
-                const pd9995Xs = (pdBase + CONFIG.pdSaleSpread).toFixed(2);
-                const pd9995Low = (pdBase - CONFIG.pdRange).toFixed(2);
-                const pd9995High = (pdBase + CONFIG.pdRange).toFixed(2);
-                const pd9995Range = `${pd9995Low}-${pd9995High}`;
-
-                // 3. 更新页面上的价格
-                // 旧料回购价
-                document.getElementById('au-jiuliao').textContent = auJiuLiao;
-                document.getElementById('au-jintiao').textContent = auJinTiao;
-                document.getElementById('au-916').textContent = au916;
-                document.getElementById('au-750').textContent = au750;
-                document.getElementById('pt-950').textContent = pt950;
-                document.getElementById('pd-990').textContent = pd990;
-                document.getElementById('ag-999').textContent = ag999;
-                document.getElementById('ag-925').textContent = ag925;
-
-                // 国内行情
-                document.getElementById('au9999-hg').textContent = au9999Hg;
-                document.getElementById('au9999-xs').textContent = au9999Xs;
-                document.getElementById('au9999-range').textContent = au9999Range;
-
-                document.getElementById('pt9995-hg').textContent = pt9995Hg;
-                document.getElementById('pt9995-xs').textContent = pt9995Xs;
-                document.getElementById('pt9995-range').textContent = pt9995Range;
-
-                document.getElementById('pd9995-hg').textContent = pd9995Hg;
-                document.getElementById('pd9995-xs').textContent = pd9995Xs;
-                document.getElementById('pd9995-range').textContent = pd9995Range;
-
-                // 4. 更新时间显示
-                const now = new Date();
-                const timeStr = now.toLocaleString('zh-CN', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-                document.getElementById('update-time').textContent = `旧料行情 ${timeStr} 更新（每5分钟自动刷新）`;
-
-            } catch (error) {
-                // 错误处理：如果API请求失败，显示提示
-                console.error('金价更新失败：', error);
-                document.getElementById('update-time').textContent = '金价更新失败，请刷新页面重试';
-            }
+        // 2. 格式化当前时间
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.getFullYear() + '-' + 
+                String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                String(now.getDate()).padStart(2, '0') + ' ' + 
+                String(now.getHours()).padStart(2, '0') + ':' + 
+                String(now.getMinutes()).padStart(2, '0') + ':' + 
+                String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('currentTime').innerText = timeString;
         }
 
-        // 页面加载时立即更新一次，然后定时刷新
-        window.onload = function() {
-            updateGoldPrice();
-            setInterval(updateGoldPrice, CONFIG.refreshInterval);
-        };
+        // 3. 渲染或更新表格数据
+        function renderTable(data) {
+            const tbody = document.getElementById('priceTableBody');
+            
+            data.forEach(item => {
+                // 模拟价格波动 (此处加入随机数模拟大盘实时跳动，实际应使用真实接口数据)
+                const volatility = (Math.random() - 0.5) * 0.5; // -0.25 到 0.25 之间的波动
+                let currentMarketPrice = item.basePrice + volatility;
+                let currentRecyclePrice = currentMarketPrice + item.recycleDiff;
+                
+                currentMarketPrice = currentMarketPrice.toFixed(2);
+                currentRecyclePrice = currentRecyclePrice.toFixed(2);
+
+                const prevPrice = lastPrices[item.id] || currentMarketPrice;
+                const diff = (currentMarketPrice - prevPrice).toFixed(2);
+                
+                // 判断涨跌颜色和符号
+                let colorClass = 'price-flat';
+                let diffText = '0.00';
+                let flashClass = '';
+
+                if (diff > 0) {
+                    colorClass = 'price-up';
+                    diffText = '+' + diff;
+                    flashClass = 'bg-flash-up';
+                } else if (diff < 0) {
+                    colorClass = 'price-down';
+                    diffText = diff;
+                    flashClass = 'bg-flash-down';
+                }
+
+                // 检查该行是否已存在
+                let row = document.getElementById('row-' + item.id);
+                
+                if (!row) {
+                    // 如果不存在则创建新行
+                    row = document.createElement('tr');
+                    row.id = 'row-' + item.id;
+                    tbody.appendChild(row);
+                } else {
+                    // 移除旧的动画类，强制重绘以重新触发动画
+                    row.classList.remove('bg-flash-up', 'bg-flash-down');
+                    void row.offsetWidth; // 触发回流(reflow)
+                }
+
+                if(flashClass) row.classList.add(flashClass);
+
+                // 更新行内HTML内容
+                row.innerHTML = `
+                    <td>
+                        <div class="product-name">${item.name}</div>
+                        <div class="product-desc">${item.desc}</div>
+                    </td>
+                    <td class="${colorClass}">${currentMarketPrice}</td>
+                    <td class="${colorClass}" style="font-size: 18px;">${currentRecyclePrice}</td>
+                    <td class="${colorClass}">${diffText}</td>
+                `;
+
+                // 更新记录
+                lastPrices[item.id] = currentMarketPrice;
+            });
+        }
+
+        // 4. 初始化启动定时任务
+        function initSystem() {
+            updateTime();
+            renderTable(products);
+            
+            // 每秒更新一次时间
+            setInterval(updateTime, 1000);
+            
+            // 每 3 秒模拟向服务器请求一次最新价格（在此模拟动态刷新）
+            setInterval(() => {
+                renderTable(products);
+            }, 3000);
+        }
+
+        // 页面加载完成后执行
+        window.onload = initSystem;
     </script>
 </body>
 </html>
